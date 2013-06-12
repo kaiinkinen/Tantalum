@@ -165,7 +165,7 @@ public class StaticCache {
      * when loading into the RAM ramCache.
      * @param startupTask if provided will be run on every entry in the cache
      * @return
-     * @throws FlashDatabaseException 
+     * @throws FlashDatabaseException
      */
     public static StaticCache getCache(final char priority, final int cacheType, final CacheView cacheView, final FlashCache.StartupTask startupTask) throws FlashDatabaseException {
         synchronized (caches) {
@@ -187,7 +187,7 @@ public class StaticCache {
      * @param cacheType
      * @param defaultCacheView
      * @param startupTask
-     * @throws FlashDatabaseException 
+     * @throws FlashDatabaseException
      */
     protected StaticCache(final char priority, final int cacheType, final CacheView defaultCacheView, final FlashCache.StartupTask startupTask) throws FlashDatabaseException {
         if (priority < '0') {
@@ -204,8 +204,8 @@ public class StaticCache {
      *
      * We want to use the RAM Hashtable to know what the ramCache contains, even
      * though we do not pre-load from flash all the values
-     * 
-     * @throws FlashDatabaseException 
+     *
+     * @throws FlashDatabaseException
      */
     private void init() throws FlashDatabaseException {
         final long[] digests;
@@ -283,17 +283,19 @@ public class StaticCache {
      * @throws DigestException
      * @throws UnsupportedEncodingException
      */
-    private Object convertAndPutToHeapCache(final String key, final byte[] bytes) throws DigestException, UnsupportedEncodingException {
+    private Object convertAndPutToHeapCache(final String key, final byte[] bytes, final boolean skipHeap) throws DigestException, UnsupportedEncodingException {
         //#mdebug
         L.i(this, "Start to convert", key + " bytes length=" + bytes.length);
         final long startTime = System.currentTimeMillis();
         //#enddebug
         final Object o = defaultCacheView.convertToUseForm(key, bytes);
 
-        final Long digest = new Long(CryptoUtils.getInstance().toDigest(key));
-        synchronized (ramCache) {
-            accessOrder.addElement(digest);
-            ramCache.put(digest, o);
+        if (!skipHeap) {
+            final Long digest = new Long(CryptoUtils.getInstance().toDigest(key));
+            synchronized (ramCache) {
+                accessOrder.addElement(digest);
+                ramCache.put(digest, o);
+            }
         }
         //#debug
         L.i(this, "End convert, elapsedTime=" + (System.currentTimeMillis() - startTime) + "ms", key);
@@ -436,7 +438,7 @@ public class StaticCache {
                 //#debug
                 L.i(this, "Flash get result", "(" + cachePriorityChar + ") key=" + key + " byteLength=" + (bytes != null ? ("" + bytes.length) : "<null>"));
                 if (bytes != null) {
-                    useForm = convertAndPutToHeapCache(key, bytes);
+                    useForm = convertAndPutToHeapCache(key, bytes, skipHeap);
                     //#debug
                     L.i(this, "Flash get converted result", "(" + cachePriorityChar + ") " + key + " : " + useForm);
                 } else {
@@ -511,7 +513,7 @@ public class StaticCache {
         //#debug
         L.i(this, "put", "key=" + key + " byteLength=" + bytes.length);
         try {
-            useForm = convertAndPutToHeapCache(key, bytes);
+            useForm = convertAndPutToHeapCache(key, bytes, skipHeap);
         } catch (DigestException ex) {
             //#debug
             L.e("Can not putAync", key, ex);
